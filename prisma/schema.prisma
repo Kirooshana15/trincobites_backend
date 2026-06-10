@@ -1,0 +1,117 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  CUSTOMER
+  RESTAURANT
+  ADMIN
+}
+
+model User {
+  id         String      @id @default(uuid())
+  fullName   String?
+  email      String      @unique
+  phone      String?     @unique
+  password   String
+  role       Role        @default(CUSTOMER)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  tokens     Token[]
+  restaurant Restaurant?
+}
+
+model Token {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}
+
+enum CuisineType {
+  SRILANKAN
+  SEAFOOD
+  KOTTU
+  BIRYANI
+  BURGERS
+  PIZZA
+  CHINESE
+  DESSERTS
+  SOUTH_INDIAN
+  JUICES
+}
+
+enum RestaurantTag {
+  HALAL
+  VEGETARIAN
+  VEGAN
+  SPICY
+  FAST_FOOD
+  FAMILY_FRIENDLY
+  LOCAL_FAVORITE
+  BUDGET_FRIENDLY
+  PREMIUM
+  DESSERT
+}
+
+model Restaurant {
+  id                    String          @id @default(uuid())
+  userId                String          @unique
+  user                  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                  String
+  tagline               String?
+  description           String?
+  logoUrl               String?
+  coverUrl              String?
+  cuisineTypes          CuisineType[]
+  tags                  RestaurantTag[]
+  streetAddress         String?
+  city                  String?
+  district              String?
+  postalCode            String?
+  latitude              Float?
+  longitude             Float?
+  primaryPhone          String?
+  whatsapp              String?
+  email                 String?
+  supportNumber         String?
+  halalFriendly         Boolean         @default(false)
+  vegetarianFriendly    Boolean         @default(false)
+  dineIn                Boolean         @default(false)
+  takeaway              Boolean         @default(false)
+  delivery              Boolean         @default(false)
+  deliveryRadius        Float?
+  estimatedDeliveryTime String?
+  deliveryFee           Float?
+  minOrder              Float?
+  freeDeliveryThreshold Float?
+  openingTime           String?
+  closingTime           String?
+  weeklyHours           Json?
+  holidayMode           Boolean         @default(false)
+  temporaryClosure      Boolean         @default(false)
+  facebook              String?
+  instagram             String?
+  tiktok                String?
+  youtube               String?
+  website               String?
+  acceptOrders          Boolean         @default(true)
+  showPublicly          Boolean         @default(true)
+  vacationMode          Boolean         @default(false)
+  autoAcceptOrders      Boolean         @default(false)
+  cashOnDelivery        Boolean         @default(true)
+  featuredRestaurant    Boolean         @default(false)
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+}
