@@ -11,13 +11,15 @@ export class SeedService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   async onModuleInit() {
     this.logger.log('Starting automatic database seeding...');
     try {
       await this.seedAdmin();
       await this.seedRestaurants();
+      await this.sanitizeOffers();
+      await this.linkFamilyComboToFriedRice();
       this.logger.log('Database seeding process completed.');
     } catch (error) {
       this.logger.error('Error during database seeding:', error);
@@ -114,7 +116,7 @@ export class SeedService implements OnModuleInit {
 
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Create User and its linked Restaurant profile in a transaction/nested write
+      // Create User with Role.RESTAURANT (profile is created manually later)
       const user = await this.prisma.user.create({
         data: {
           fullName: name,
@@ -122,20 +124,90 @@ export class SeedService implements OnModuleInit {
           phone,
           password: hashedPassword,
           role: Role.RESTAURANT,
-          restaurant: {
-            create: {
-              name,
-              primaryPhone: phone,
-              email: email,
-            },
-          },
-        },
-        include: {
-          restaurant: true,
         },
       });
 
-      this.logger.log(`Restaurant user and profile created successfully: ${user.email} - ${user.restaurant?.name}`);
+      this.logger.log(`Restaurant user created successfully: ${user.email}`);
     }
   }
+
+  private async sanitizeOffers() {
+    this.logger.log('Sanitizing Offer table categoryId and menuItemId empty strings to null...');
+    try {
+      const offersToUpdate = await this.prisma.offer.findMany({
+        where: {
+          OR: [
+            { menuItemId: '' },
+            { categoryId: '' }
+          ]
+        }
+      });
+
+      for (const offer of offersToUpdate) {
+        await this.prisma.offer.update({
+          where: { id: offer.id },
+          data: {
+            menuItemId: offer.menuItemId === '' ? null : offer.menuItemId,
+            categoryId: offer.categoryId === '' ? null : offer.categoryId
+          }
+        });
+      }
+      this.logger.log(`Sanitized ${offersToUpdate.length} offers.`);
+    } catch (error) {
+      this.logger.error('Error sanitizing offers:', error);
+    }
+  }
+
+  private async linkFamilyComboToFriedRice() {
+    this.logger.log('Checking and linking Family Combo Deal to Chicken Fried Rice...');
+    try {
+      const offer = await this.prisma.offer.findFirst({
+        where: {
+          title: {
+            contains: 'Family Combo Deal',
+            mode: 'insensitive'
+          }
+        }
+      });
+
+      if (!offer) {
+        this.logger.warn('Family Combo Deal offer not found.');
+        return;
+      }
+
+      this.logger.log(`Found Family Combo Deal offer with ID: ${offer.id}, owned by restaurant: ${offer.restaurantId}`);
+
+      const friedRice = await this.prisma.menuItem.findFirst({
+        where: {
+          restaurantId: offer.restaurantId,
+          name: {
+            contains: 'Chicken Fried Rice',
+            mode: 'insensitive'
+          }
+        }
+      });
+
+      if (!friedRice) {
+        this.logger.warn('Chicken Fried Rice menu item not found for this restaurant. Cannot link Family Combo Deal.');
+        return;
+      }
+
+      this.logger.log(`Found Chicken Fried Rice with ID: ${friedRice.id}`);
+
+      if (offer.menuItemId !== friedRice.id) {
+        await this.prisma.offer.update({
+          where: { id: offer.id },
+          data: {
+            menuItemId: friedRice.id
+          }
+        });
+        this.logger.log(`Successfully linked/updated Family Combo Deal to Chicken Fried Rice (ID: ${friedRice.id})!`);
+      } else {
+        this.logger.log('Family Combo Deal is already linked to the correct restaurant-specific menu item.');
+      }
+    } catch (error) {
+      this.logger.error('Error linking Family Combo Deal:', error);
+    }
+  }
+
 }
