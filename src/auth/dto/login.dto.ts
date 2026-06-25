@@ -3,6 +3,9 @@ import { IsEmail, IsNotEmpty, IsOptional, IsString, Matches, MinLength } from 'c
 export class LoginDto {
   @IsOptional()
   @IsEmail({}, { message: 'Please provide a valid email address.' })
+  @Matches(/^(?!.*@(gmail|yahoo|hotmail|outlook|icloud)\.co$)[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/i, {
+    message: 'Please provide a valid email address (e.g. example@gmail.com).',
+  })
   email?: string;
 
   @IsOptional()

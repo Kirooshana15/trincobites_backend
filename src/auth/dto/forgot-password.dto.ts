@@ -1,13 +1,19 @@
-import { IsEmail, IsNotEmpty, IsString, Length, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, Length, MinLength, Matches } from 'class-validator';
 
 export class ForgotPasswordDto {
   @IsEmail({}, { message: 'Please enter a valid email address.' })
+  @Matches(/^(?!.*@(gmail|yahoo|hotmail|outlook|icloud)\.co$)[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/i, {
+    message: 'Please provide a valid email address (e.g. example@gmail.com).',
+  })
   @IsNotEmpty({ message: 'Email address is required.' })
   email: string;
 }
 
 export class VerifyOtpDto {
   @IsEmail({}, { message: 'Please enter a valid email address.' })
+  @Matches(/^(?!.*@(gmail|yahoo|hotmail|outlook|icloud)\.co$)[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/i, {
+    message: 'Please provide a valid email address (e.g. example@gmail.com).',
+  })
   @IsNotEmpty({ message: 'Email address is required.' })
   email: string;
 
@@ -19,6 +25,9 @@ export class VerifyOtpDto {
 
 export class ResetPasswordDto {
   @IsEmail({}, { message: 'Please enter a valid email address.' })
+  @Matches(/^(?!.*@(gmail|yahoo|hotmail|outlook|icloud)\.co$)[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/i, {
+    message: 'Please provide a valid email address (e.g. example@gmail.com).',
+  })
   @IsNotEmpty({ message: 'Email address is required.' })
   email: string;
 
